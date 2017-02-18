@@ -28,22 +28,22 @@ public class DeepNetwork {
         metalDevice = MTLCreateSystemDefaultDevice()
         
         // Queue to handle an ordered list of command buffers
-        metalCommandQueue = metalDevice.newCommandQueue()
-        print("metalCommandQueue = \(unsafeAddressOf(metalCommandQueue))")
+        metalCommandQueue = metalDevice.makeCommandQueue()
+        //print("metalCommandQueue = \(unsafeAddressOf(metalCommandQueue))")
         
         // Access to Metal functions that are stored in Shaders.metal file, e.g. sigmoid()
         metalDefaultLibrary = metalDevice.newDefaultLibrary()
     }
     
     public func loadNetworkFromJson(jsonNetworkFileName: String) {
-        deepNetworkAsDict = loadJSONFile(jsonNetworkFileName)!
+        deepNetworkAsDict = loadJSONFile(filename: jsonNetworkFileName)!
     }
     
-    public func classify(image: [Float], shape:[Float]) -> Int {
-        let imageTensor = createMetalBuffer(image, metalDevice: metalDevice)
+    public func classify(image: [Float], shape:[Float]) -> (Int,Float,Double) {
+        let imageTensor = createMetalBuffer(vector: image, metalDevice: metalDevice)
         
         gpuCommandLayers = []
-        setupNetworkFromDict(deepNetworkAsDict, inputimage: imageTensor, inputshape: shape)
+        setupNetworkFromDict(deepNetworkAsDict: deepNetworkAsDict, inputimage: imageTensor, inputshape: shape)
         
         let start = NSDate()
         for commandBuffer in gpuCommandLayers {
@@ -52,24 +52,25 @@ public class DeepNetwork {
         
         // wait until last layer in conv.net is finished
         gpuCommandLayers.last!.waitUntilCompleted()
-        print("Time to run network: \(NSDate().timeIntervalSinceDate(start))")
+        print("Time to run network: \(NSDate().timeIntervalSince(start as Date))")
+        let duration = NSDate().timeIntervalSince(start as Date)
         
-        var classification_results =  [Float](count: 10, repeatedValue: 0.0)
+        var classification_results =  [Float](repeating: 0.0, count: 10)
         let (lastLayerName, lastMetalBuffer) = namedDataLayers.last!
         NSLog(lastLayerName)
         let data = NSData(bytesNoCopy: lastMetalBuffer.contents(),
-            length: classification_results.count*sizeof(Float), freeWhenDone: false)
-        data.getBytes(&classification_results, length:(Int(classification_results.count)) * sizeof(Float))
+            length: classification_results.count*MemoryLayout<Float>.size, freeWhenDone: false)
+        data.getBytes(&classification_results, length:(Int(classification_results.count)) * MemoryLayout<Float>.size)
         print(classification_results)
-        let maxValue:Float = classification_results.maxElement()!
-        let indexOfMaxValue:Int = classification_results.indexOf(maxValue)!
+        let maxValue:Float = classification_results.max()!
+        let indexOfMaxValue:Int = classification_results.index(of: maxValue)!
         
         print("maxValue = \(maxValue), indexofMaxValue = \(indexOfMaxValue)")
         
         // empty command buffers!
         
         // return index
-        return indexOfMaxValue
+        return (indexOfMaxValue,maxValue,duration)
         
     }
 }

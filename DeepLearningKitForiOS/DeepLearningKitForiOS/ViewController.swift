@@ -17,15 +17,15 @@ class ViewController: UIViewController {
         
         deepNetwork = DeepNetwork()
         
-        var randomimage = createFloatNumbersArray(3072)
+        var randomimage = createFloatNumbersArray(count: 3072)
         for i in 0..<randomimage.count {
             randomimage[i] = Float(arc4random_uniform(1000))
         }
         
         let imageShape:[Float] = [1.0, 3.0, 32.0, 32.0]
         
-        deepNetwork.loadJSONFile("foobar")
-        deepNetwork.classify(randomimage, shape: imageShape)
+        deepNetwork.loadJSONFile(filename: "foobar")
+        deepNetwork.classify(image: randomimage, shape: imageShape)
         
 
         exit(0)

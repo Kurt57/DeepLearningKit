@@ -12,9 +12,9 @@ import Metal
 func createRectifierLayer(inputBuffer: MTLBuffer, metalCommandQueue: MTLCommandQueue, metalDefaultLibrary:MTLLibrary, metalDevice:MTLDevice) -> (MTLBuffer,MTLCommandBuffer) {
     print(" ==> createrectifierlayer")
 //    let metalCommandBuffer = metalCommandQueue.commandBuffer()
-    let metalCommandBuffer = metalCommandQueue.commandBufferWithUnretainedReferences()
+    let metalCommandBuffer = metalCommandQueue.makeCommandBufferWithUnretainedReferences()
 
-    let result = addRectifierCommandToCommandBuffer(metalCommandBuffer, inputBuffer: inputBuffer,
+    let result = addRectifierCommandToCommandBuffer(commandBuffer: metalCommandBuffer, inputBuffer: inputBuffer,
         metalDefaultLibrary: metalDefaultLibrary, metalDevice:metalDevice)
     //metalCommandBuffer.commit()
     
@@ -28,20 +28,20 @@ func addRectifierCommandToCommandBuffer(commandBuffer: MTLCommandBuffer, inputBu
     
         print("==> addRectifierToCommandBuffer")
         
-    let count = inputBuffer.length / sizeof(Float)
-    let (_, computePipelineState, _) = setupShaderInMetalPipeline("rectifier_linear", metalDefaultLibrary: metalDefaultLibrary,
+    let count = inputBuffer.length / MemoryLayout<Float>.size
+    let (_, computePipelineState, _) = setupShaderInMetalPipeline(shaderName: "rectifier_linear", metalDefaultLibrary: metalDefaultLibrary,
         metalDevice: metalDevice)
     
     // Create Metal Compute Command Encoder and add input and output buffers to it
-    let computeCommandEncoder = commandBuffer.computeCommandEncoder()
-    computeCommandEncoder.setBuffer(inputBuffer, offset: 0, atIndex: 0)
+    let computeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
+    computeCommandEncoder.setBuffer(inputBuffer, offset: 0, at: 0)
     // Set the shader function that Metal will use
-    computeCommandEncoder.setComputePipelineState(computePipelineState)
+    computeCommandEncoder.setComputePipelineState(computePipelineState!)
     
     // Set up thread groups on GPU
-    let threadsPerGroup = MTLSize(width:computePipelineState.threadExecutionWidth,height:1,depth:1)
+    let threadsPerGroup = MTLSize(width:(computePipelineState?.threadExecutionWidth)!,height:1,depth:1)
     // ensure at least 1 threadgroup
-    let numThreadgroups = MTLSize(width:(count-1)/computePipelineState.threadExecutionWidth + 1, height:1, depth:1)
+    let numThreadgroups = MTLSize(width:(count-1)/(computePipelineState?.threadExecutionWidth)! + 1, height:1, depth:1)
     computeCommandEncoder.dispatchThreadgroups(numThreadgroups, threadsPerThreadgroup: threadsPerGroup)
     
     // Finalize configuration

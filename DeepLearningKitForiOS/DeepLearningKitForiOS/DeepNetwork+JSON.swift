@@ -14,11 +14,11 @@ func loadJSONFile(filename: String) -> NSDictionary? {
     print(" ==> loadJSONFile(filename=\(filename)")
     
     do {
-        let bundle = NSBundle.mainBundle()
-        let path = bundle.pathForResource(filename, ofType: "json")!
+        let bundle = Bundle.main
+        let path = bundle.path(forResource: filename, ofType: "json")!
         let jsonData = NSData(contentsOfFile: path)
         print(" <== loadJSONFile")
-        return try NSJSONSerialization.JSONObjectWithData(jsonData!, options: .AllowFragments) as? NSDictionary
+        return try JSONSerialization.jsonObject(with: jsonData! as Data, options: .allowFragments) as? NSDictionary
     } catch _ {
         return nil
     }
